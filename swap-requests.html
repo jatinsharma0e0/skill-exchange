@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Swap Requests</title>
+  <style>
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #f9f9f9; margin: 0; padding: 0; color: #222; }
+    .header { background: #fff; padding: 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ccc; }
+    .header h1 { margin: 0; font-size: 24px; font-weight: 700; color: #4e260e; letter-spacing: 1px; }
+    .header .nav { display: flex; align-items: center; gap: 20px; }
+    .header .nav a { color: #222; text-decoration: none; font-size: 18px; font-family: inherit; margin-right: 10px; }
+    .header .nav a:last-child { margin-right: 0; }
+    .header .profile-photo { width: 40px; height: 40px; border-radius: 50%; background: #ddd; display: inline-block; vertical-align: middle; }
+    .controls { display: flex; align-items: center; gap: 10px; margin: 30px 0 10px 0; justify-content: center; }
+    .controls select, .controls input[type="text"] { padding: 8px; border: 1px solid #ccc; border-radius: 5px; font-size: 1rem; }
+    .controls button { padding: 8px 18px; border-radius: 5px; border: none; background: #ffe082; color: #4e260e; font-weight: 700; cursor: pointer; }
+    .swap-list { max-width: 800px; margin: 30px auto; }
+    .swap-card { background: #fff; border-radius: 20px; box-shadow: 0 0 10px rgba(0,0,0,0.1); padding: 30px 30px 20px 30px; margin-bottom: 30px; display: flex; align-items: center; justify-content: space-between; border: 2px solid #eee; }
+    .swap-info { display: flex; align-items: center; }
+    .swap-photo { width: 90px; height: 90px; border-radius: 50%; background: #ddd; margin-right: 30px; display: flex; align-items: center; justify-content: center; font-size: 18px; color: #888; }
+    .swap-details h3 { margin: 0 0 10px 0; font-size: 1.3rem; font-weight: 700; color: #4e260e; }
+    .swap-details .skill { display: inline-block; background: #ffe082; color: #4e260e; padding: 5px 12px; border-radius: 20px; margin: 2px; font-size: 15px; font-weight: 600; }
+    .swap-details .label { color: #1976d2; font-weight: 600; margin-right: 5px; }
+    .swap-details .rating { font-size: 1rem; color: #ffb300; font-weight: 700; margin-top: 8px; }
+    .swap-status { text-align: right; min-width: 160px; }
+    .swap-status .status { font-size: 1.1rem; font-weight: 700; margin-bottom: 10px; }
+    .swap-status .pending { color: #888; }
+    .swap-status .accepted { color: #27ae60; }
+    .swap-status .rejected { color: #d32f2f; }
+    .swap-status .action-btn { margin: 0 8px; padding: 7px 18px; border-radius: 8px; border: none; font-weight: 700; font-size: 1rem; cursor: pointer; }
+    .swap-status .accept-btn { background: #e8f5e9; color: #27ae60; border: 1px solid #27ae60; }
+    .swap-status .reject-btn { background: #ffebee; color: #d32f2f; border: 1px solid #d32f2f; }
+    .pagination { text-align: center; padding: 20px; }
+    .pagination span { display: inline-block; padding: 8px 12px; margin: 2px; border: 1px solid #ccc; border-radius: 5px; cursor: pointer; color: #4e260e; background: #ffe082; font-weight: 600; }
+    .pagination .active { background: #4e260e; color: #fff; }
+    @media (max-width: 600px) {
+      .swap-card { flex-direction: column; align-items: flex-start; }
+      .swap-status { text-align: left; margin-top: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Skill Swap Platform</h1>
+    <div class="nav">
+      <a href="#">Home</a>
+      <span class="profile-photo"></span>
+    </div>
+  </div>
+  <div class="controls">
+    <select id="statusFilter">
+      <option value="all">All</option>
+      <option value="pending">Pending</option>
+      <option value="accepted">Accepted</option>
+      <option value="rejected">Rejected</option>
+    </select>
+    <input type="text" id="searchInput" placeholder="Search" />
+    <button onclick="filterSwaps()">Search</button>
+  </div>
+  <div class="swap-list" id="swapList"></div>
+  <div class="pagination">
+    <span>&lt;</span>
+    <span class="active">1</span>
+    <span>2</span>
+    <span>3</span>
+    <span>&gt;</span>
+  </div>
+  <script>
+    // Example swap requests data
+    let swaps = [
+      {
+        name: "Marc Demo",
+        photo: "",
+        skillsOffered: "JavaScript",
+        skillsWanted: "Photoshop",
+        rating: 3.9,
+        status: "pending"
+      },
+      {
+        name: "Jane Smith",
+        photo: "",
+        skillsOffered: "Python",
+        skillsWanted: "Graphic Designer",
+        rating: 4.2,
+        status: "rejected"
+      }
+    ];
+    function renderSwaps() {
+      const list = document.getElementById('swapList');
+      list.innerHTML = '';
+      swaps.forEach((swap, idx) => {
+        if (!filterMatch(swap)) return;
+        list.innerHTML += `
+          <div class="swap-card">
+            <div class="swap-info">
+              <div class="swap-photo">Profile Photo</div>
+              <div class="swap-details">
+                <h3>${swap.name}</h3>
+                <div><span class="label">Skills Offered =&gt;</span> <span class="skill">${swap.skillsOffered}</span></div>
+                <div><span class="label" style="color:#1976d2">Skill wanted =&gt;</span> <span class="skill">${swap.skillsWanted}</span></div>
+                <div class="rating">rating ${swap.rating}/5</div>
+              </div>
+            </div>
+            <div class="swap-status">
+              <div class="status ${swap.status}">${capitalize(swap.status)}</div>
+              ${swap.status === 'pending' ? `<button class="action-btn accept-btn" onclick="acceptSwap(${idx})">Accept</button> <button class="action-btn reject-btn" onclick="rejectSwap(${idx})">Reject</button>` : ''}
+            </div>
+          </div>
+        `;
+      });
+    }
+    function capitalize(str) { return str.charAt(0).toUpperCase() + str.slice(1); }
+    function acceptSwap(idx) { swaps[idx].status = 'accepted'; renderSwaps(); }
+    function rejectSwap(idx) { swaps[idx].status = 'rejected'; renderSwaps(); }
+    function filterMatch(swap) {
+      const status = document.getElementById('statusFilter').value;
+      const search = document.getElementById('searchInput').value.toLowerCase();
+      if (status !== 'all' && swap.status !== status) return false;
+      if (search && !swap.name.toLowerCase().includes(search) && !swap.skillsOffered.toLowerCase().includes(search) && !swap.skillsWanted.toLowerCase().includes(search)) return false;
+      return true;
+    }
+    function filterSwaps() { renderSwaps(); }
+    document.getElementById('statusFilter').addEventListener('change', filterSwaps);
+    document.getElementById('searchInput').addEventListener('input', filterSwaps);
+    renderSwaps();
+  </script>
+</body>
+</html>
