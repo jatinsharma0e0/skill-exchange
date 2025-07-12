@@ -11,8 +11,9 @@
     .header .nav { display: flex; align-items: center; gap: 20px; }
     .header .nav a { color: #222; text-decoration: none; font-size: 18px; font-family: inherit; margin-right: 10px; }
     .header .nav a:last-child { margin-right: 0; }
+    .header .profile-photo { width: 40px; height: 40px; border-radius: 50%; background: #ddd; overflow: hidden; }
     .profile-page { max-width: 700px; margin: 40px auto; background: #fff; border-radius: 20px; box-shadow: 0 0 10px rgba(0,0,0,0.1); padding: 40px 30px; position: relative; }
-    .profile-photo-large { position: absolute; right: 40px; top: 40px; width: 140px; height: 140px; border-radius: 50%; background: #ddd; border: 2px solid #bbb; display: flex; align-items: center; justify-content: center; font-size: 40px; color: #888; }
+    .profile-photo-large { position: absolute; right: 40px; top: 40px; width: 140px; height: 140px; border-radius: 50%; background: #ddd; border: 2px solid #bbb; display: flex; align-items: center; justify-content: center; font-size: 40px; color: #888; overflow: hidden; }
     .request-btn { position: absolute; left: 40px; top: 40px; background: #9ae7ff; border: none; padding: 12px 32px; border-radius: 10px; cursor: pointer; color: #0d47a1; font-weight: 700; font-size: 1.1rem; transition: background 0.2s, color 0.2s; }
     .request-btn:hover { background: #1976d2; color: #fff; }
     .profile-details { margin-top: 60px; }
@@ -20,46 +21,168 @@
     .profile-details p { font-size: 1.1rem; margin: 10px 0; }
     .skill-tags span { display: inline-block; background: #ffe082; color: #4e260e; padding: 5px 10px; border-radius: 20px; margin: 2px; font-size: 15px; font-weight: 600; }
     .rating { font-size: 1.2rem; color: #ffb300; font-weight: 700; margin-top: 30px; }
+    .feedback-section { margin-top: 40px; border-top: 1px solid #eee; padding-top: 20px; }
+    .feedback-section h3 { color: #4e260e; margin-bottom: 15px; }
+    .feedback-item { background: #f5f5f5; border-radius: 10px; padding: 15px; margin-bottom: 15px; }
+    .feedback-header { display: flex; justify-content: space-between; margin-bottom: 10px; }
+    .feedback-user { font-weight: 600; }
+    .feedback-date { color: #777; font-size: 0.9rem; }
+    .feedback-rating { color: #ffb300; margin-bottom: 10px; }
+    .feedback-comment { color: #333; }
+    .no-feedback { color: #777; font-style: italic; }
   </style>
 </head>
 <body>
   <div class="header">
     <h1>Skill Swap Platform</h1>
     <div class="nav">
-      <a href="#">Swap request</a>
+      <a href="swap-requests.html">Swap requests</a>
       <a href="land.html">Home</a>
-      <span style="width:40px;height:40px;border-radius:50%;background:#ddd;display:inline-block;vertical-align:middle;"></span>
+      <div class="profile-photo" id="headerAvatar">
+        <img src="https://cdn-icons-png.flaticon.com/512/2922/2922510.png" alt="User Avatar" style="width:100%;height:100%;">
+      </div>
     </div>
   </div>
   <div class="profile-page">
     <button class="request-btn" id="requestBtn">Request</button>
-    <div class="profile-photo-large">Profile Photo</div>
+    <div class="profile-photo-large" id="profilePhoto">
+      <img src="https://cdn-icons-png.flaticon.com/512/2922/2922510.png" alt="Profile Photo" style="width:100%;height:100%;">
+    </div>
     <div class="profile-details">
       <h2 id="profileName">User Name</h2>
       <p><strong>Skills Offered</strong><br><span class='skill-tags' id="skillsOffered"></span></p>
       <p><strong>Skills wanted</strong><br><span class='skill-tags' id="skillsWanted"></span></p>
-      <div class='rating' id="profileRating">Rating and Feedback: </div>
+      <div class='rating' id="profileRating">Rating: 0/5</div>
+    </div>
+    
+    <div class="feedback-section">
+      <h3>Feedback from others</h3>
+      <div id="feedbackList">
+        <div class="no-feedback">No feedback yet</div>
+      </div>
     </div>
   </div>
   <script>
+    // Check if current user is logged in
+    const currentUser = JSON.parse(localStorage.getItem('user'));
+    
+    // Update header avatar if logged in
+    if (currentUser && currentUser.profile_photo) {
+      document.getElementById('headerAvatar').querySelector('img').src = currentUser.profile_photo;
+    }
+    
     // Get user data from query params
     function getQueryParams() {
       const params = {};
       window.location.search.replace(/\??(?:([^=]+)=([^&]*)&?)/g, function(_, k, v) { params[k] = decodeURIComponent(v); });
       return params;
     }
+    
     const params = getQueryParams();
-    document.getElementById('profileName').textContent = params.name || 'User Name';
-    document.getElementById('profileRating').textContent = `Rating and Feedback: ${params.rating || ''}`;
-    if(params.skillsOffered) {
-      document.getElementById('skillsOffered').innerHTML = params.skillsOffered.split(',').map(skill => `<span>${skill}</span>`).join(' ');
+    const userId = params.id;
+    
+    // Load user data from API
+    async function loadUserData() {
+      try {
+        const response = await fetch(`http://localhost:3000/api/skills/user/${userId}`);
+        if (response.ok) {
+          const userData = await response.json();
+          
+          // Update profile information
+          document.getElementById('profileName').textContent = userData.name;
+          document.getElementById('profileRating').textContent = `Rating: ${userData.rating}/5`;
+          
+          if (userData.profile_photo) {
+            document.getElementById('profilePhoto').querySelector('img').src = userData.profile_photo;
+          }
+          
+          // Populate offered skills
+          const skillsOffered = document.getElementById('skillsOffered');
+          skillsOffered.innerHTML = '';
+          userData.skillsOffered.forEach(skill => {
+            const span = document.createElement('span');
+            span.textContent = skill.name;
+            skillsOffered.appendChild(span);
+          });
+          
+          // Populate wanted skills
+          const skillsWanted = document.getElementById('skillsWanted');
+          skillsWanted.innerHTML = '';
+          userData.skillsWanted.forEach(skill => {
+            const span = document.createElement('span');
+            span.textContent = skill.name;
+            skillsWanted.appendChild(span);
+          });
+          
+          // Setup request button
+          document.getElementById('requestBtn').onclick = function() {
+            if (!currentUser) {
+              alert('Please log in to send a swap request');
+              window.location.href = 'login.html';
+              return;
+            }
+            
+            const offeredSkills = userData.skillsOffered.map(s => s.name).join(',');
+            const wantedSkills = userData.skillsWanted.map(s => s.name).join(',');
+            
+            window.location.href = `swap-request.html?to_user_id=${userId}&name=${encodeURIComponent(userData.name)}&skillsOffered=${encodeURIComponent(offeredSkills)}&skillsWanted=${encodeURIComponent(wantedSkills)}`;
+          };
+          
+          // Load feedback
+          loadUserFeedback(userId);
+        } else {
+          console.error('Failed to load user data');
+        }
+      } catch (error) {
+        console.error('Error loading user data:', error);
+      }
     }
-    if(params.skillsWanted) {
-      document.getElementById('skillsWanted').innerHTML = params.skillsWanted.split(',').map(skill => `<span>${skill}</span>`).join(' ');
+    
+    // Load user feedback
+    async function loadUserFeedback(userId) {
+      try {
+        const response = await fetch(`http://localhost:3000/api/swaps/feedback/user/${userId}`);
+        if (response.ok) {
+          const feedbackList = await response.json();
+          
+          const feedbackContainer = document.getElementById('feedbackList');
+          
+          if (feedbackList.length === 0) {
+            feedbackContainer.innerHTML = '<div class="no-feedback">No feedback yet</div>';
+            return;
+          }
+          
+          feedbackContainer.innerHTML = '';
+          
+          feedbackList.forEach(feedback => {
+            const date = new Date(feedback.created_at).toLocaleDateString();
+            
+            const feedbackItem = document.createElement('div');
+            feedbackItem.className = 'feedback-item';
+            feedbackItem.innerHTML = `
+              <div class="feedback-header">
+                <span class="feedback-user">${feedback.from_user_name}</span>
+                <span class="feedback-date">${date}</span>
+              </div>
+              <div class="feedback-rating">Rating: ${feedback.rating}/5 ★</div>
+              <div class="feedback-comment">${feedback.comment || 'No comment'}</div>
+            `;
+            
+            feedbackContainer.appendChild(feedbackItem);
+          });
+        }
+      } catch (error) {
+        console.error('Error loading feedback:', error);
+      }
     }
-    document.getElementById('requestBtn').onclick = function() {
-      window.location.href = `swap-request.html?name=${encodeURIComponent(params.name)}&skillsOffered=${encodeURIComponent(params.skillsOffered)}&skillsWanted=${encodeURIComponent(params.skillsWanted)}`;
-    };
+    
+    // Load user data on page load
+    if (userId) {
+      loadUserData();
+    } else {
+      alert('User ID not provided');
+      window.location.href = 'land.html';
+    }
   </script>
 </body>
 </html>

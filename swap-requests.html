@@ -11,14 +11,14 @@
     .header .nav { display: flex; align-items: center; gap: 20px; }
     .header .nav a { color: #222; text-decoration: none; font-size: 18px; font-family: inherit; margin-right: 10px; }
     .header .nav a:last-child { margin-right: 0; }
-    .header .profile-photo { width: 40px; height: 40px; border-radius: 50%; background: #ddd; display: inline-block; vertical-align: middle; }
+    .header .profile-photo { width: 40px; height: 40px; border-radius: 50%; background: #ddd; display: inline-block; vertical-align: middle; overflow: hidden; }
     .controls { display: flex; align-items: center; gap: 10px; margin: 30px 0 10px 0; justify-content: center; }
     .controls select, .controls input[type="text"] { padding: 8px; border: 1px solid #ccc; border-radius: 5px; font-size: 1rem; }
     .controls button { padding: 8px 18px; border-radius: 5px; border: none; background: #ffe082; color: #4e260e; font-weight: 700; cursor: pointer; }
     .swap-list { max-width: 800px; margin: 30px auto; }
     .swap-card { background: #fff; border-radius: 20px; box-shadow: 0 0 10px rgba(0,0,0,0.1); padding: 30px 30px 20px 30px; margin-bottom: 30px; display: flex; align-items: center; justify-content: space-between; border: 2px solid #eee; }
     .swap-info { display: flex; align-items: center; }
-    .swap-photo { width: 90px; height: 90px; border-radius: 50%; background: #ddd; margin-right: 30px; display: flex; align-items: center; justify-content: center; font-size: 18px; color: #888; }
+    .swap-photo { width: 90px; height: 90px; border-radius: 50%; background: #ddd; margin-right: 30px; display: flex; align-items: center; justify-content: center; font-size: 18px; color: #888; overflow: hidden; }
     .swap-details h3 { margin: 0 0 10px 0; font-size: 1.3rem; font-weight: 700; color: #4e260e; }
     .swap-details .skill { display: inline-block; background: #ffe082; color: #4e260e; padding: 5px 12px; border-radius: 20px; margin: 2px; font-size: 15px; font-weight: 600; }
     .swap-details .label { color: #1976d2; font-weight: 600; margin-right: 5px; }
@@ -28,12 +28,28 @@
     .swap-status .pending { color: #888; }
     .swap-status .accepted { color: #27ae60; }
     .swap-status .rejected { color: #d32f2f; }
+    .swap-status .cancelled { color: #f39c12; }
     .swap-status .action-btn { margin: 0 8px; padding: 7px 18px; border-radius: 8px; border: none; font-weight: 700; font-size: 1rem; cursor: pointer; }
     .swap-status .accept-btn { background: #e8f5e9; color: #27ae60; border: 1px solid #27ae60; }
     .swap-status .reject-btn { background: #ffebee; color: #d32f2f; border: 1px solid #d32f2f; }
+    .swap-status .cancel-btn { background: #fff3e0; color: #f39c12; border: 1px solid #f39c12; }
+    .swap-status .feedback-btn { background: #e3f2fd; color: #1976d2; border: 1px solid #1976d2; margin-top: 10px; }
     .pagination { text-align: center; padding: 20px; }
     .pagination span { display: inline-block; padding: 8px 12px; margin: 2px; border: 1px solid #ccc; border-radius: 5px; cursor: pointer; color: #4e260e; background: #ffe082; font-weight: 600; }
     .pagination .active { background: #4e260e; color: #fff; }
+    .no-swaps { text-align: center; margin: 50px 0; font-size: 1.2rem; color: #888; }
+    .feedback-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
+    .feedback-form { background: white; padding: 30px; border-radius: 10px; width: 90%; max-width: 500px; }
+    .feedback-form h3 { margin-top: 0; }
+    .feedback-form label { display: block; margin: 15px 0 5px; font-weight: 600; }
+    .feedback-form .rating-stars { display: flex; gap: 10px; }
+    .feedback-form .star { font-size: 24px; cursor: pointer; color: #ccc; }
+    .feedback-form .star.active { color: #ffb300; }
+    .feedback-form textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; margin: 5px 0; }
+    .feedback-form .buttons { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+    .feedback-form button { padding: 8px 16px; border-radius: 5px; border: none; font-weight: 600; cursor: pointer; }
+    .feedback-form .submit-btn { background: #1976d2; color: white; }
+    .feedback-form .cancel-btn { background: #f5f5f5; color: #333; }
     @media (max-width: 600px) {
       .swap-card { flex-direction: column; align-items: flex-start; }
       .swap-status { text-align: left; margin-top: 20px; }
@@ -44,8 +60,11 @@
   <div class="header">
     <h1>Skill Swap Platform</h1>
     <div class="nav">
-      <a href="#">Home</a>
-      <span class="profile-photo"></span>
+      <a href="land.html">Home</a>
+      <a href="profile.html">Profile</a>
+      <div class="profile-photo" id="headerAvatar">
+        <img src="https://cdn-icons-png.flaticon.com/512/2922/2922510.png" alt="User Avatar" style="width:100%;height:100%;">
+      </div>
     </div>
   </div>
   <div class="controls">
@@ -54,76 +73,288 @@
       <option value="pending">Pending</option>
       <option value="accepted">Accepted</option>
       <option value="rejected">Rejected</option>
+      <option value="cancelled">Cancelled</option>
+    </select>
+    <select id="typeFilter">
+      <option value="all">All</option>
+      <option value="sent">Sent</option>
+      <option value="received">Received</option>
     </select>
     <input type="text" id="searchInput" placeholder="Search" />
     <button onclick="filterSwaps()">Search</button>
   </div>
   <div class="swap-list" id="swapList"></div>
-  <div class="pagination">
-    <span>&lt;</span>
-    <span class="active">1</span>
-    <span>2</span>
-    <span>3</span>
-    <span>&gt;</span>
+  
+  <!-- Feedback Modal -->
+  <div class="feedback-modal" id="feedbackModal">
+    <div class="feedback-form">
+      <h3>Leave Feedback</h3>
+      <p id="feedbackUserName">Rate your experience with User</p>
+      <label>Rating</label>
+      <div class="rating-stars" id="ratingStars">
+        <span class="star" data-rating="1">★</span>
+        <span class="star" data-rating="2">★</span>
+        <span class="star" data-rating="3">★</span>
+        <span class="star" data-rating="4">★</span>
+        <span class="star" data-rating="5">★</span>
+      </div>
+      <label>Comment</label>
+      <textarea id="feedbackComment" rows="4" placeholder="Share your experience..."></textarea>
+      <div class="buttons">
+        <button class="cancel-btn" onclick="closeFeedbackModal()">Cancel</button>
+        <button class="submit-btn" onclick="submitFeedback()">Submit</button>
+      </div>
+    </div>
   </div>
+  
   <script>
-    // Example swap requests data
-    let swaps = [
-      {
-        name: "Marc Demo",
-        photo: "",
-        skillsOffered: "JavaScript",
-        skillsWanted: "Photoshop",
-        rating: 3.9,
-        status: "pending"
-      },
-      {
-        name: "Jane Smith",
-        photo: "",
-        skillsOffered: "Python",
-        skillsWanted: "Graphic Designer",
-        rating: 4.2,
-        status: "rejected"
+    // Check if user is logged in
+    const userData = JSON.parse(localStorage.getItem('user'));
+    if (!userData) {
+      window.location.href = 'login.html';
+    }
+    
+    // Update header avatar
+    if (userData.profile_photo) {
+      document.getElementById('headerAvatar').querySelector('img').src = userData.profile_photo;
+    }
+    
+    let swaps = [];
+    let currentFeedbackData = null;
+    
+    // Load swap requests
+    async function loadSwapRequests() {
+      try {
+        const response = await fetch(`http://localhost:3000/api/swaps/user/${userData.id}`);
+        if (response.ok) {
+          swaps = await response.json();
+          renderSwaps();
+        } else {
+          console.error('Failed to load swap requests');
+        }
+      } catch (error) {
+        console.error('Error loading swap requests:', error);
       }
-    ];
+    }
+    
     function renderSwaps() {
       const list = document.getElementById('swapList');
       list.innerHTML = '';
-      swaps.forEach((swap, idx) => {
-        if (!filterMatch(swap)) return;
-        list.innerHTML += `
-          <div class="swap-card">
-            <div class="swap-info">
-              <div class="swap-photo">Profile Photo</div>
-              <div class="swap-details">
-                <h3>${swap.name}</h3>
-                <div><span class="label">Skills Offered =&gt;</span> <span class="skill">${swap.skillsOffered}</span></div>
-                <div><span class="label" style="color:#1976d2">Skill wanted =&gt;</span> <span class="skill">${swap.skillsWanted}</span></div>
-                <div class="rating">rating ${swap.rating}/5</div>
-              </div>
+      
+      const filteredSwaps = swaps.filter(filterMatch);
+      
+      if (filteredSwaps.length === 0) {
+        list.innerHTML = '<div class="no-swaps">No swap requests found</div>';
+        return;
+      }
+      
+      filteredSwaps.forEach((swap) => {
+        const isSender = swap.is_sender;
+        const otherUser = isSender ? swap.to_user : swap.from_user;
+        
+        const card = document.createElement('div');
+        card.className = 'swap-card';
+        card.innerHTML = `
+          <div class="swap-info">
+            <div class="swap-photo">
+              ${otherUser.photo ? `<img src="${otherUser.photo}" alt="Profile" style="width:100%;height:100%;">` : 'Profile'}
             </div>
-            <div class="swap-status">
-              <div class="status ${swap.status}">${capitalize(swap.status)}</div>
-              ${swap.status === 'pending' ? `<button class="action-btn accept-btn" onclick="acceptSwap(${idx})">Accept</button> <button class="action-btn reject-btn" onclick="rejectSwap(${idx})">Reject</button>` : ''}
+            <div class="swap-details">
+              <h3>${otherUser.name}</h3>
+              <div><span class="label">${isSender ? 'You offered' : 'They offered'} =&gt;</span> <span class="skill">${isSender ? swap.skill_offered : swap.skill_requested}</span></div>
+              <div><span class="label" style="color:#1976d2">${isSender ? 'They offered' : 'You offered'} =&gt;</span> <span class="skill">${isSender ? swap.skill_requested : swap.skill_offered}</span></div>
+              <div class="rating">Rating: ${otherUser.rating}/5</div>
             </div>
           </div>
+          <div class="swap-status">
+            <div class="status ${swap.status}">${capitalize(swap.status)}</div>
+            ${getActionButtons(swap)}
+          </div>
         `;
+        
+        list.appendChild(card);
+      });
+      
+      // Add event listeners to buttons
+      document.querySelectorAll('.accept-btn').forEach(btn => {
+        btn.addEventListener('click', () => updateSwapStatus(btn.dataset.id, 'accepted'));
+      });
+      
+      document.querySelectorAll('.reject-btn').forEach(btn => {
+        btn.addEventListener('click', () => updateSwapStatus(btn.dataset.id, 'rejected'));
+      });
+      
+      document.querySelectorAll('.cancel-btn').forEach(btn => {
+        btn.addEventListener('click', () => updateSwapStatus(btn.dataset.id, 'cancelled'));
+      });
+      
+      document.querySelectorAll('.feedback-btn').forEach(btn => {
+        btn.addEventListener('click', () => openFeedbackModal(btn.dataset.id, btn.dataset.toUserId, btn.dataset.userName));
       });
     }
-    function capitalize(str) { return str.charAt(0).toUpperCase() + str.slice(1); }
-    function acceptSwap(idx) { swaps[idx].status = 'accepted'; renderSwaps(); }
-    function rejectSwap(idx) { swaps[idx].status = 'rejected'; renderSwaps(); }
+    
+    function getActionButtons(swap) {
+      const isSender = swap.is_sender;
+      
+      if (swap.status === 'pending') {
+        if (isSender) {
+          return `<button class="action-btn cancel-btn" data-id="${swap.id}">Cancel</button>`;
+        } else {
+          return `
+            <button class="action-btn accept-btn" data-id="${swap.id}">Accept</button>
+            <button class="action-btn reject-btn" data-id="${swap.id}">Reject</button>
+          `;
+        }
+      } else if (swap.status === 'accepted') {
+        // Check if feedback has been given
+        // In a real app, you'd check if feedback exists in the database
+        return `<button class="action-btn feedback-btn" data-id="${swap.id}" data-to-user-id="${isSender ? swap.to_user.id : swap.from_user.id}" data-user-name="${isSender ? swap.to_user.name : swap.from_user.name}">Leave Feedback</button>`;
+      }
+      
+      return '';
+    }
+    
+    async function updateSwapStatus(swapId, status) {
+      try {
+        const response = await fetch(`http://localhost:3000/api/swaps/${swapId}/status`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            status,
+            user_id: userData.id
+          })
+        });
+        
+        if (response.ok) {
+          // Update local data
+          const swapIndex = swaps.findIndex(s => s.id == swapId);
+          if (swapIndex !== -1) {
+            swaps[swapIndex].status = status;
+            renderSwaps();
+          }
+        } else {
+          alert('Failed to update swap request');
+        }
+      } catch (error) {
+        console.error('Error updating swap request:', error);
+      }
+    }
+    
+    function openFeedbackModal(swapId, toUserId, userName) {
+      currentFeedbackData = {
+        swap_id: swapId,
+        from_user_id: userData.id,
+        to_user_id: toUserId,
+        rating: 0
+      };
+      
+      document.getElementById('feedbackUserName').textContent = `Rate your experience with ${userName}`;
+      document.getElementById('feedbackComment').value = '';
+      document.getElementById('ratingStars').querySelectorAll('.star').forEach(star => {
+        star.classList.remove('active');
+      });
+      
+      document.getElementById('feedbackModal').style.display = 'flex';
+    }
+    
+    function closeFeedbackModal() {
+      document.getElementById('feedbackModal').style.display = 'none';
+      currentFeedbackData = null;
+    }
+    
+    async function submitFeedback() {
+      if (!currentFeedbackData || currentFeedbackData.rating === 0) {
+        alert('Please select a rating');
+        return;
+      }
+      
+      currentFeedbackData.comment = document.getElementById('feedbackComment').value;
+      
+      try {
+        const response = await fetch('http://localhost:3000/api/swaps/feedback', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(currentFeedbackData)
+        });
+        
+        if (response.ok) {
+          alert('Feedback submitted successfully');
+          closeFeedbackModal();
+        } else {
+          alert('Failed to submit feedback');
+        }
+      } catch (error) {
+        console.error('Error submitting feedback:', error);
+      }
+    }
+    
+    // Initialize rating stars
+    document.querySelectorAll('.star').forEach(star => {
+      star.addEventListener('click', function() {
+        const rating = parseInt(this.dataset.rating);
+        currentFeedbackData.rating = rating;
+        
+        // Update UI
+        document.querySelectorAll('.star').forEach(s => {
+          s.classList.remove('active');
+          if (parseInt(s.dataset.rating) <= rating) {
+            s.classList.add('active');
+          }
+        });
+      });
+    });
+    
     function filterMatch(swap) {
-      const status = document.getElementById('statusFilter').value;
-      const search = document.getElementById('searchInput').value.toLowerCase();
-      if (status !== 'all' && swap.status !== status) return false;
-      if (search && !swap.name.toLowerCase().includes(search) && !swap.skillsOffered.toLowerCase().includes(search) && !swap.skillsWanted.toLowerCase().includes(search)) return false;
+      const statusFilter = document.getElementById('statusFilter').value;
+      const typeFilter = document.getElementById('typeFilter').value;
+      const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+      
+      // Status filter
+      if (statusFilter !== 'all' && swap.status !== statusFilter) {
+        return false;
+      }
+      
+      // Type filter
+      if (typeFilter !== 'all') {
+        if (typeFilter === 'sent' && !swap.is_sender) {
+          return false;
+        }
+        if (typeFilter === 'received' && swap.is_sender) {
+          return false;
+        }
+      }
+      
+      // Search filter
+      if (searchTerm) {
+        const otherUser = swap.is_sender ? swap.to_user : swap.from_user;
+        const searchText = `${otherUser.name} ${swap.skill_offered} ${swap.skill_requested}`.toLowerCase();
+        if (!searchText.includes(searchTerm)) {
+          return false;
+        }
+      }
+      
       return true;
     }
-    function filterSwaps() { renderSwaps(); }
+    
+    function filterSwaps() {
+      renderSwaps();
+    }
+    
+    function capitalize(str) {
+      return str.charAt(0).toUpperCase() + str.slice(1);
+    }
+    
+    // Add event listeners
     document.getElementById('statusFilter').addEventListener('change', filterSwaps);
+    document.getElementById('typeFilter').addEventListener('change', filterSwaps);
     document.getElementById('searchInput').addEventListener('input', filterSwaps);
-    renderSwaps();
+    
+    // Load swap requests on page load
+    loadSwapRequests();
   </script>
 </body>
 </html>
