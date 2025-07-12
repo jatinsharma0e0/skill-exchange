@@ -122,10 +122,9 @@
               return;
             }
             
-            const offeredSkills = userData.skillsOffered.map(s => s.name).join(',');
             const wantedSkills = userData.skillsWanted.map(s => s.name).join(',');
             
-            window.location.href = `swap-request.html?to_user_id=${userId}&name=${encodeURIComponent(userData.name)}&skillsOffered=${encodeURIComponent(offeredSkills)}&skillsWanted=${encodeURIComponent(wantedSkills)}`;
+            window.location.href = `swap-request.html?to_user_id=${userId}&name=${encodeURIComponent(userData.name)}&skillsWanted=${encodeURIComponent(wantedSkills)}`;
           };
           
           // Load feedback

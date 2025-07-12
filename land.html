@@ -243,7 +243,7 @@
             const skillsWanted = Array.from(profileCard.querySelectorAll(".skill-tags span")).slice(profileCard.dataset.offeredCount).map(s => s.textContent);
             
             // Open swap request form
-            window.location.href = `swap-request.html?to_user_id=${userId}&name=${encodeURIComponent(name)}&skillsOffered=${encodeURIComponent(skillsOffered.join(','))}&skillsWanted=${encodeURIComponent(skillsWanted.join(','))}`;
+            window.location.href = `swap-request.html?to_user_id=${userId}&name=${encodeURIComponent(name)}&skillsWanted=${encodeURIComponent(skillsWanted.join(','))}`;
           });
         });
 
@@ -255,7 +255,16 @@
     function renderProfiles(profiles) {
       const container = document.getElementById("profiles-container");
       container.innerHTML = "";
-      profiles.forEach((p) => {
+      
+      // Filter out the current user if logged in
+      const filteredProfiles = userData ? profiles.filter(profile => profile.id != userData.id) : profiles;
+      
+      if (filteredProfiles.length === 0) {
+        container.innerHTML = '<div style="text-align: center; margin: 50px 0; color: #888; font-size: 1.2rem;">No profiles found</div>';
+        return;
+      }
+      
+      filteredProfiles.forEach((p) => {
         const card = document.createElement("div");
         card.className = "profile-card";
         card.dataset.userId = p.id;

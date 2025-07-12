@@ -14,18 +14,20 @@
     button { margin-top: 20px; padding: 10px 20px; background: #90caf9; color: #0d47a1; font-weight: 700; font-size: 1rem; border: none; border-radius: 8px; cursor: pointer; }
     button:hover { background: #1976d2; color: #fff; }
     .error-message { color: #c0392b; margin-top: 10px; font-weight: 600; }
+    .loading { text-align: center; margin: 20px 0; font-style: italic; color: #666; }
   </style>
 </head>
 <body>
   <div class="container">
     <h2 id="swapTitle">Send Swap Request</h2>
     <div id="errorMessage" class="error-message" style="display: none;"></div>
-    <form id="swapForm">
+    <div id="loadingMessage" class="loading">Loading skills data...</div>
+    <form id="swapForm" style="display: none;">
       <label>Choose one of your offered skills</label>
       <select id="offeredSkill" required>
         <option value="">Select</option>
       </select>
-      <label>Choose one of their wanted skills</label>
+      <label>Choose one of their offered skills</label>
       <select id="wantedSkill" required>
         <option value="">Select</option>
       </select>
@@ -39,6 +41,8 @@
     const userData = JSON.parse(localStorage.getItem('user'));
     if (!userData) {
       window.location.href = 'login.html';
+    } else {
+      console.log("Current user data:", userData);
     }
 
     function getQueryParams() {
@@ -48,43 +52,74 @@
     }
     
     const params = getQueryParams();
-    document.getElementById('swapTitle').textContent = `Send Swap Request to ${params.name || ''}`;
+    const recipientId = params.to_user_id;
+    const recipientName = params.name || 'User';
     
-    // Load user's offered skills
-    async function loadUserSkills() {
+    document.getElementById('swapTitle').textContent = `Send Swap Request to ${recipientName}`;
+    
+    // Load both users' skills
+    async function loadSkillsData() {
       try {
-        const response = await fetch(`http://localhost:3000/api/skills/user/${userData.id}`);
-        if (response.ok) {
-          const data = await response.json();
-          
-          // Populate offered skills dropdown
-          const offeredSkillSelect = document.getElementById('offeredSkill');
-          offeredSkillSelect.innerHTML = '<option value="">Select</option>';
-          
-          data.skillsOffered.forEach(skill => {
+        // Load current user's offered skills
+        const currentUserResponse = await fetch(`http://localhost:3000/api/skills/user/${userData.id}`);
+        
+        if (!currentUserResponse.ok) {
+          throw new Error(`Failed to load your skills: ${currentUserResponse.status}`);
+        }
+        
+        const currentUserData = await currentUserResponse.json();
+        console.log("Current user skills data:", currentUserData);
+        
+        // Load recipient user's wanted skills
+        const recipientResponse = await fetch(`http://localhost:3000/api/skills/user/${recipientId}`);
+        
+        if (!recipientResponse.ok) {
+          throw new Error(`Failed to load recipient's skills: ${recipientResponse.status}`);
+        }
+        
+        const recipientData = await recipientResponse.json();
+        console.log("Recipient user skills data:", recipientData);
+        
+        // Populate offered skills dropdown (current user's offered skills)
+        const offeredSkillSelect = document.getElementById('offeredSkill');
+        offeredSkillSelect.innerHTML = '<option value="">Select</option>';
+        
+        if (currentUserData.skillsOffered && Array.isArray(currentUserData.skillsOffered) && currentUserData.skillsOffered.length > 0) {
+          currentUserData.skillsOffered.forEach(skill => {
             const option = document.createElement('option');
             option.value = skill.name;
             option.textContent = skill.name;
             offeredSkillSelect.appendChild(option);
           });
+        } else {
+          showError('You have no offered skills. Please add skills to your profile first.');
+          return;
         }
+        
+        // Populate wanted skills dropdown (recipient's offered skills)
+        const wantedSkillSelect = document.getElementById('wantedSkill');
+        wantedSkillSelect.innerHTML = '<option value="">Select</option>';
+        
+        if (recipientData.skillsOffered && Array.isArray(recipientData.skillsOffered) && recipientData.skillsOffered.length > 0) {
+          recipientData.skillsOffered.forEach(skill => {
+            const option = document.createElement('option');
+            option.value = skill.name;
+            option.textContent = skill.name;
+            wantedSkillSelect.appendChild(option);
+          });
+        } else {
+          showError(`${recipientName} has no offered skills listed.`);
+          return;
+        }
+        
+        // Hide loading message and show form
+        document.getElementById('loadingMessage').style.display = 'none';
+        document.getElementById('swapForm').style.display = 'block';
+        
       } catch (error) {
-        console.error('Error loading skills:', error);
-        showError('Failed to load your skills. Please try again.');
+        console.error('Error loading skills data:', error);
+        showError(`Failed to load skills data: ${error.message}`);
       }
-    }
-    
-    // Populate recipient's wanted skills
-    if (params.skillsWanted) {
-      const wantedSkillSelect = document.getElementById('wantedSkill');
-      wantedSkillSelect.innerHTML = '<option value="">Select</option>';
-      
-      params.skillsWanted.split(',').forEach(skill => {
-        const option = document.createElement('option');
-        option.value = skill;
-        option.textContent = skill;
-        wantedSkillSelect.appendChild(option);
-      });
     }
     
     // Handle form submission
@@ -107,7 +142,7 @@
           },
           body: JSON.stringify({
             from_user_id: userData.id,
-            to_user_id: params.to_user_id,
+            to_user_id: recipientId,
             skill_offered: offeredSkill,
             skill_requested: wantedSkill
           })
@@ -131,10 +166,15 @@
       const errorElement = document.getElementById('errorMessage');
       errorElement.textContent = message;
       errorElement.style.display = 'block';
+      document.getElementById('loadingMessage').style.display = 'none';
     }
     
-    // Load user skills on page load
-    loadUserSkills();
+    // Load skills data on page load
+    if (recipientId) {
+      loadSkillsData();
+    } else {
+      showError('Recipient user ID not provided');
+    }
   </script>
 </body>
 </html>
