@@ -202,36 +202,68 @@
   </div>
 
   <script>
-    const profiles = [
-      {
-        name: "Marc Demo",
-        skillsOffered: ["JavaScript", "Python"],
-        skillsWanted: ["Photoshop", "Graphic Designer"],
-        rating: 3.9
-      },
-      {
-        name: "Michell",
-        skillsOffered: ["JavaScript", "Python"],
-        skillsWanted: ["Photoshop", "Graphic Designer"],
-        rating: 2.5
-      },
-      {
-        name: "Joe Wills",
-        skillsOffered: ["JavaScript", "Python"],
-        skillsWanted: ["Photoshop", "Graphic Designer"],
-        rating: 4.0
-      }
-    ];
+    // Check if user is logged in
+    const userData = JSON.parse(localStorage.getItem('user'));
+    
+    // Update header based on login status
+    if (userData) {
+      document.querySelector('.login-btn-header').textContent = userData.name;
+      document.querySelector('.login-btn-header').onclick = function() {
+        window.location.href = 'profile.html';
+      };
+    } else {
+      document.querySelector('.login-btn-header').textContent = 'Login';
+      document.querySelector('.login-btn-header').onclick = function() {
+        window.location.href = 'login.html';
+      };
+    }
+    
+    async function loadProfiles() {
+      try {
+        const res = await fetch("http://localhost:3000/api/skills/suggestions");
+        const profiles = await res.json();
+        renderProfiles(profiles);
+        // Add this at the end of renderProfiles(profiles)
+        const buttons = document.querySelectorAll(".request-btn");
+        buttons.forEach((btn) => {
+          btn.addEventListener("click", function (e) {
+            e.stopPropagation();
+            
+            // Check if user is logged in
+            if (!userData) {
+              alert('Please log in to send a swap request');
+              window.location.href = 'login.html';
+              return;
+            }
+            
+            const profileCard = btn.closest(".profile-card");
+            const userId = profileCard.dataset.userId;
+            const name = profileCard.querySelector("h3").textContent;
+            const skillsOffered = Array.from(profileCard.querySelectorAll(".skill-tags span")).slice(0, profileCard.dataset.offeredCount).map(s => s.textContent);
+            const skillsWanted = Array.from(profileCard.querySelectorAll(".skill-tags span")).slice(profileCard.dataset.offeredCount).map(s => s.textContent);
+            
+            // Open swap request form
+            window.location.href = `swap-request.html?to_user_id=${userId}&name=${encodeURIComponent(name)}&skillsOffered=${encodeURIComponent(skillsOffered.join(','))}&skillsWanted=${encodeURIComponent(skillsWanted.join(','))}`;
+          });
+        });
 
-    function renderProfiles() {
+      } catch (err) {
+        console.error("Failed to load profiles:", err);
+      }
+    }
+
+    function renderProfiles(profiles) {
       const container = document.getElementById("profiles-container");
       container.innerHTML = "";
       profiles.forEach((p) => {
         const card = document.createElement("div");
         card.className = "profile-card";
+        card.dataset.userId = p.id;
+        card.dataset.offeredCount = p.skillsOffered.length;
+        
         card.innerHTML = `
           <div class="profile-info">
-            <div class="profile-photo"></div>
+            <div class="profile-photo" style="background-image: url('${p.photo || ''}'); background-size: cover;"></div>
             <div>
               <h3>${p.name}</h3>
               <p><strong style="color: #27ae60">Skills Offered:</strong> <span class="skill-tags">${p.skillsOffered.map(skill => `<span>${skill}</span>`).join(" ")}</span></p>
@@ -241,79 +273,51 @@
           </div>
           <button class="request-btn">Request</button>
         `;
+        
         card.style.cursor = "pointer";
-        card.addEventListener("click", function(e) {
-          // Prevent button click from triggering card click
-          const user = p;
+        card.addEventListener("click", function (e) {
           if (e.target.classList.contains("request-btn")) {
-            // Redirect to swap-request.html with user data
-            window.location.href = `swap-request.html?name=${encodeURIComponent(user.name)}&skillsOffered=${encodeURIComponent(user.skillsOffered.join(','))}&skillsWanted=${encodeURIComponent(user.skillsWanted.join(','))}`;
-            return;
+            return; // Let the button handler handle this
           }
-          // Redirect to user-profile.html with user data
-          window.location.href = `user-profile.html?name=${encodeURIComponent(user.name)}&skillsOffered=${encodeURIComponent(user.skillsOffered.join(','))}&skillsWanted=${encodeURIComponent(user.skillsWanted.join(','))}&rating=${encodeURIComponent(user.rating)}`;
+          // Navigate to user profile page
+          window.location.href = `user-profile.html?id=${p.id}&name=${encodeURIComponent(p.name)}&rating=${p.rating}&skillsOffered=${encodeURIComponent(p.skillsOffered.join(','))}&skillsWanted=${encodeURIComponent(p.skillsWanted.join(','))}`;
         });
+        
         container.appendChild(card);
       });
     }
 
-    renderProfiles();
-    function openRequestForm(user) {
-  const newTab = window.open('', '_blank');
-  newTab.document.write(`
-    <html><head><title>Swap Request to ${user.name}</title>
-    <style>
-      body { font-family: 'Segoe UI', sans-serif; background: #f9f9f9; margin: 0; padding: 0; }
-      .container { max-width: 600px; margin: 60px auto; padding: 30px; background: #fff; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-      h2 { color: #4e260e; text-align: center; }
-      label { display: block; margin-top: 20px; margin-bottom: 5px; font-weight: 600; }
-      select, textarea { width: 100%; padding: 10px; font-size: 1rem; border-radius: 5px; border: 1px solid #ccc; }
-      button { margin-top: 20px; padding: 10px 20px; background: #90caf9; color: #0d47a1; font-weight: 700; font-size: 1rem; border: none; border-radius: 8px; cursor: pointer; }
-      button:hover { background: #1976d2; color: #fff; }
-    </style>
-    </head><body>
-      <div class="container">
-        <h2>Send Swap Request to ${user.name}</h2>
-        <form onsubmit="event.preventDefault(); alert('Request Sent!'); window.close();">
-          <label>Choose one of your offered skills</label>
-          <select required>
-            <option value="">Select</option>
-            <option>JavaScript</option>
-            <option>React</option>
-            <option>Python</option>
-          </select>
+    // Filter profiles
+    document.getElementById('search-box').addEventListener('input', filterProfiles);
+    document.getElementById('availability').addEventListener('change', filterProfiles);
 
-          <label>Choose one of their wanted skills</label>
-          <select required>
-            ${user.skillsWanted.map(skill => `<option>${skill}</option>`).join('')}
-          </select>
+    function filterProfiles() {
+      const searchTerm = document.getElementById('search-box').value.toLowerCase();
+      const availabilityFilter = document.getElementById('availability').value.toLowerCase();
+      
+      const cards = document.querySelectorAll('.profile-card');
+      
+      cards.forEach(card => {
+        const name = card.querySelector('h3').textContent.toLowerCase();
+        const availability = card.querySelector('.profile-info').textContent.toLowerCase();
+        const skills = card.querySelector('.skill-tags').textContent.toLowerCase();
+        
+        let showCard = true;
+        
+        if (searchTerm && !name.includes(searchTerm) && !skills.includes(searchTerm)) {
+          showCard = false;
+        }
+        
+        if (availabilityFilter && !availability.includes(availabilityFilter)) {
+          showCard = false;
+        }
+        
+        card.style.display = showCard ? 'flex' : 'none';
+      });
+    }
 
-          <label>Message</label>
-          <textarea rows="4" placeholder="Enter a message for ${user.name}"></textarea>
-
-          <button type="submit">Submit</button>
-        </form>
-      </div>
-    </body></html>
-  `);
-  newTab.document.close();
-}
-
-// Example: Attach to buttons after rendering profile cards
-document.addEventListener("DOMContentLoaded", function () {
-  const buttons = document.querySelectorAll(".request-btn");
-  buttons.forEach((btn, index) => {
-    btn.addEventListener("click", function (e) {
-      e.stopPropagation();
-      const profileCard = btn.closest(".profile-card");
-      const name = profileCard.querySelector("h3").textContent;
-      const skillsOffered = Array.from(profileCard.querySelectorAll(".skill-tags span")).slice(0, 2).map(s => s.textContent);
-      const skillsWanted = Array.from(profileCard.querySelectorAll(".skill-tags span")).slice(2).map(s => s.textContent);
-      const user = { name, skillsWanted, skillsOffered };
-      openRequestForm(user);
-    });
-  });
-});
+    // Load profiles when page loads
+    loadProfiles();
   </script>
 </body>
 </html>

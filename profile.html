@@ -179,6 +179,15 @@
       text-decoration: underline;
       margin-left: 8px;
     }
+    .logout-btn {
+      background: none;
+      border: none;
+      color: #c0392b;
+      font-size: 1.1rem;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: underline;
+    }
     @media (max-width: 700px) {
       .profile-main {
         flex-direction: column;
@@ -195,12 +204,13 @@
 <body>
   <div class="profile-header">
     <div class="actions">
-      <button class="save-btn">Save</button>
-      <button class="discard-btn">Discard</button>
-      <button class="swap-btn">Swap request</button>
+      <button class="save-btn" id="saveBtn">Save</button>
+      <button class="discard-btn" id="discardBtn">Discard</button>
+      <button class="swap-btn" id="swapBtn">Swap requests</button>
       <button class="home-btn" onclick="window.location.href='land.html'">Home</button>
+      <button class="logout-btn" id="logoutBtn">Logout</button>
     </div>
-    <div class="avatar">
+    <div class="avatar" id="headerAvatar">
       <img src="https://cdn-icons-png.flaticon.com/512/2922/2922510.png" alt="User Avatar" style="width:100%;height:100%;">
     </div>
   </div>
@@ -214,22 +224,18 @@
 
       <div class="skills-section">
         <label>Skills Offered</label>
-        <div class="skill-tags">
-          <span class="skill-tag">Graphic Design <button class="remove-skill" title="Remove">&times;</button></span>
-          <span class="skill-tag">Video Editing <button class="remove-skill" title="Remove">&times;</button></span>
-          <span class="skill-tag">Photoshop <button class="remove-skill" title="Remove">&times;</button></span>
+        <div class="skill-tags" id="offeredSkills">
+          <!-- Skills will be populated dynamically -->
         </div>
-        <input type="text" placeholder="Add skill..." />
+        <input type="text" id="addOfferedSkill" placeholder="Add skill..." />
       </div>
 
       <div class="skills-section">
         <label>Skills Wanted</label>
-        <div class="skill-tags">
-          <span class="skill-tag">Python <button class="remove-skill" title="Remove">&times;</button></span>
-          <span class="skill-tag">Java Script <button class="remove-skill" title="Remove">&times;</button></span>
-          <span class="skill-tag">Manager <button class="remove-skill" title="Remove">&times;</button></span>
+        <div class="skill-tags" id="wantedSkills">
+          <!-- Skills will be populated dynamically -->
         </div>
-        <input type="text" placeholder="Add skill..." />
+        <input type="text" id="addWantedSkill" placeholder="Add skill..." />
       </div>
 
       <label for="availability">Availability</label>
@@ -242,12 +248,252 @@
       </select>
     </div>
     <div class="profile-photo-section">
-      <div class="profile-photo">
+      <div class="profile-photo" id="profilePhoto">
         <img src="https://cdn-icons-png.flaticon.com/512/2922/2922510.png" alt="Profile Photo" style="width:100%;height:100%;">
       </div>
-      <button class="edit-photo-btn">Add/Edit</button>
-      <button class="remove-photo-btn">Remove</button>
+      <input type="file" id="photoInput" style="display:none" accept="image/*" />
+      <button class="edit-photo-btn" id="editPhotoBtn">Add/Edit</button>
+      <button class="remove-photo-btn" id="removePhotoBtn">Remove</button>
     </div>
   </div>
+
+  <script>
+    // Check if user is logged in
+    const userData = JSON.parse(localStorage.getItem('user'));
+    if (!userData) {
+      window.location.href = 'login.html';
+    }
+
+    // DOM elements
+    const nameInput = document.getElementById('name');
+    const locationInput = document.getElementById('location');
+    const availabilityInput = document.getElementById('availability');
+    const profileSelect = document.getElementById('profile');
+    const offeredSkillsContainer = document.getElementById('offeredSkills');
+    const wantedSkillsContainer = document.getElementById('wantedSkills');
+    const addOfferedSkillInput = document.getElementById('addOfferedSkill');
+    const addWantedSkillInput = document.getElementById('addWantedSkill');
+    const profilePhotoElement = document.getElementById('profilePhoto').querySelector('img');
+    const headerAvatarElement = document.getElementById('headerAvatar').querySelector('img');
+    const photoInput = document.getElementById('photoInput');
+
+    // Initialize with user data
+    nameInput.value = userData.name || '';
+    locationInput.value = userData.location || '';
+    availabilityInput.value = userData.availability || '';
+    profileSelect.value = userData.is_private ? 'private' : 'public';
+    
+    if (userData.profile_photo) {
+      profilePhotoElement.src = userData.profile_photo;
+      headerAvatarElement.src = userData.profile_photo;
+    }
+
+    // Load user skills
+    async function loadUserSkills() {
+      try {
+        const response = await fetch(`http://localhost:3000/api/skills/user/${userData.id}`);
+        if (response.ok) {
+          const data = await response.json();
+          
+          // Populate offered skills
+          offeredSkillsContainer.innerHTML = '';
+          data.skillsOffered.forEach(skill => {
+            addSkillTag(skill.name, 'offered', skill.id);
+          });
+          
+          // Populate wanted skills
+          wantedSkillsContainer.innerHTML = '';
+          data.skillsWanted.forEach(skill => {
+            addSkillTag(skill.name, 'wanted', skill.id);
+          });
+        }
+      } catch (error) {
+        console.error('Error loading skills:', error);
+      }
+    }
+
+    // Add skill tag to UI
+    function addSkillTag(skillName, type, skillId = null) {
+      const container = type === 'offered' ? offeredSkillsContainer : wantedSkillsContainer;
+      
+      const skillTag = document.createElement('span');
+      skillTag.className = 'skill-tag';
+      skillTag.dataset.id = skillId;
+      skillTag.dataset.name = skillName;
+      skillTag.textContent = skillName + ' ';
+      
+      const removeBtn = document.createElement('button');
+      removeBtn.className = 'remove-skill';
+      removeBtn.title = 'Remove';
+      removeBtn.innerHTML = '&times;';
+      removeBtn.onclick = async function() {
+        if (skillId) {
+          try {
+            const response = await fetch(`http://localhost:3000/api/skills/${skillId}`, {
+              method: 'DELETE'
+            });
+            
+            if (response.ok) {
+              skillTag.remove();
+            } else {
+              alert('Failed to remove skill');
+            }
+          } catch (error) {
+            console.error('Error removing skill:', error);
+          }
+        } else {
+          skillTag.remove();
+        }
+      };
+      
+      skillTag.appendChild(removeBtn);
+      container.appendChild(skillTag);
+    }
+
+    // Add new skills
+    addOfferedSkillInput.addEventListener('keypress', async function(e) {
+      if (e.key === 'Enter' && this.value.trim()) {
+        const skillName = this.value.trim();
+        
+        try {
+          const response = await fetch('http://localhost:3000/api/skills/add', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              user_id: userData.id,
+              type: 'offered',
+              name: skillName
+            })
+          });
+          
+          const data = await response.json();
+          
+          if (response.ok) {
+            addSkillTag(skillName, 'offered', data.skillId);
+            this.value = '';
+          } else {
+            alert('Failed to add skill');
+          }
+        } catch (error) {
+          console.error('Error adding skill:', error);
+        }
+      }
+    });
+
+    addWantedSkillInput.addEventListener('keypress', async function(e) {
+      if (e.key === 'Enter' && this.value.trim()) {
+        const skillName = this.value.trim();
+        
+        try {
+          const response = await fetch('http://localhost:3000/api/skills/add', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              user_id: userData.id,
+              type: 'wanted',
+              name: skillName
+            })
+          });
+          
+          const data = await response.json();
+          
+          if (response.ok) {
+            addSkillTag(skillName, 'wanted', data.skillId);
+            this.value = '';
+          } else {
+            alert('Failed to add skill');
+          }
+        } catch (error) {
+          console.error('Error adding skill:', error);
+        }
+      }
+    });
+
+    // Handle profile photo
+    document.getElementById('editPhotoBtn').addEventListener('click', function() {
+      photoInput.click();
+    });
+
+    photoInput.addEventListener('change', function(e) {
+      if (e.target.files && e.target.files[0]) {
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+          const photoUrl = e.target.result;
+          profilePhotoElement.src = photoUrl;
+          headerAvatarElement.src = photoUrl;
+        };
+        
+        reader.readAsDataURL(e.target.files[0]);
+      }
+    });
+
+    document.getElementById('removePhotoBtn').addEventListener('click', function() {
+      profilePhotoElement.src = 'https://cdn-icons-png.flaticon.com/512/2922/2922510.png';
+      headerAvatarElement.src = 'https://cdn-icons-png.flaticon.com/512/2922/2922510.png';
+    });
+
+    // Save profile
+    document.getElementById('saveBtn').addEventListener('click', async function() {
+      const updatedProfile = {
+        name: nameInput.value,
+        location: locationInput.value,
+        availability: availabilityInput.value,
+        is_private: profileSelect.value === 'private',
+        profile_photo: profilePhotoElement.src
+      };
+      
+      try {
+        const response = await fetch(`http://localhost:3000/api/skills/profile/${userData.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(updatedProfile)
+        });
+        
+        if (response.ok) {
+          // Update local storage
+          userData.name = updatedProfile.name;
+          userData.location = updatedProfile.location;
+          userData.availability = updatedProfile.availability;
+          userData.is_private = updatedProfile.is_private;
+          userData.profile_photo = updatedProfile.profile_photo;
+          
+          localStorage.setItem('user', JSON.stringify(userData));
+          
+          alert('Profile updated successfully!');
+        } else {
+          alert('Failed to update profile');
+        }
+      } catch (error) {
+        console.error('Error updating profile:', error);
+        alert('Something went wrong. Please try again.');
+      }
+    });
+
+    // Discard changes
+    document.getElementById('discardBtn').addEventListener('click', function() {
+      location.reload();
+    });
+
+    // Navigate to swap requests
+    document.getElementById('swapBtn').addEventListener('click', function() {
+      window.location.href = 'swap-requests.html';
+    });
+
+    // Logout
+    document.getElementById('logoutBtn').addEventListener('click', function() {
+      localStorage.removeItem('user');
+      window.location.href = 'login.html';
+    });
+
+    // Load skills on page load
+    loadUserSkills();
+  </script>
 </body>
 </html>

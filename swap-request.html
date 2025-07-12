@@ -13,12 +13,14 @@
     textarea { min-height: 80px; resize: vertical; }
     button { margin-top: 20px; padding: 10px 20px; background: #90caf9; color: #0d47a1; font-weight: 700; font-size: 1rem; border: none; border-radius: 8px; cursor: pointer; }
     button:hover { background: #1976d2; color: #fff; }
+    .error-message { color: #c0392b; margin-top: 10px; font-weight: 600; }
   </style>
 </head>
 <body>
   <div class="container">
     <h2 id="swapTitle">Send Swap Request</h2>
-    <form onsubmit="event.preventDefault(); alert('Request Sent!'); window.close();">
+    <div id="errorMessage" class="error-message" style="display: none;"></div>
+    <form id="swapForm">
       <label>Choose one of your offered skills</label>
       <select id="offeredSkill" required>
         <option value="">Select</option>
@@ -28,24 +30,111 @@
         <option value="">Select</option>
       </select>
       <label>Message</label>
-      <textarea rows="4" placeholder="Enter a message"></textarea>
+      <textarea id="message" rows="4" placeholder="Enter a message"></textarea>
       <button type="submit">Submit</button>
     </form>
   </div>
   <script>
+    // Check if user is logged in
+    const userData = JSON.parse(localStorage.getItem('user'));
+    if (!userData) {
+      window.location.href = 'login.html';
+    }
+
     function getQueryParams() {
       const params = {};
       window.location.search.replace(/\??(?:([^=]+)=([^&]*)&?)/g, function(_, k, v) { params[k] = decodeURIComponent(v); });
       return params;
     }
+    
     const params = getQueryParams();
     document.getElementById('swapTitle').textContent = `Send Swap Request to ${params.name || ''}`;
-    if(params.skillsOffered) {
-      document.getElementById('offeredSkill').innerHTML += params.skillsOffered.split(',').map(skill => `<option value="${skill}">${skill}</option>`).join('');
+    
+    // Load user's offered skills
+    async function loadUserSkills() {
+      try {
+        const response = await fetch(`http://localhost:3000/api/skills/user/${userData.id}`);
+        if (response.ok) {
+          const data = await response.json();
+          
+          // Populate offered skills dropdown
+          const offeredSkillSelect = document.getElementById('offeredSkill');
+          offeredSkillSelect.innerHTML = '<option value="">Select</option>';
+          
+          data.skillsOffered.forEach(skill => {
+            const option = document.createElement('option');
+            option.value = skill.name;
+            option.textContent = skill.name;
+            offeredSkillSelect.appendChild(option);
+          });
+        }
+      } catch (error) {
+        console.error('Error loading skills:', error);
+        showError('Failed to load your skills. Please try again.');
+      }
     }
-    if(params.skillsWanted) {
-      document.getElementById('wantedSkill').innerHTML += params.skillsWanted.split(',').map(skill => `<option value="${skill}">${skill}</option>`).join('');
+    
+    // Populate recipient's wanted skills
+    if (params.skillsWanted) {
+      const wantedSkillSelect = document.getElementById('wantedSkill');
+      wantedSkillSelect.innerHTML = '<option value="">Select</option>';
+      
+      params.skillsWanted.split(',').forEach(skill => {
+        const option = document.createElement('option');
+        option.value = skill;
+        option.textContent = skill;
+        wantedSkillSelect.appendChild(option);
+      });
     }
+    
+    // Handle form submission
+    document.getElementById('swapForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const offeredSkill = document.getElementById('offeredSkill').value;
+      const wantedSkill = document.getElementById('wantedSkill').value;
+      
+      if (!offeredSkill || !wantedSkill) {
+        showError('Please select both skills');
+        return;
+      }
+      
+      try {
+        const response = await fetch('http://localhost:3000/api/swaps', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            from_user_id: userData.id,
+            to_user_id: params.to_user_id,
+            skill_offered: offeredSkill,
+            skill_requested: wantedSkill
+          })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          alert('Swap request sent successfully!');
+          window.close();
+        } else {
+          showError(data.message || 'Failed to send swap request');
+        }
+      } catch (error) {
+        console.error('Error sending swap request:', error);
+        showError('Something went wrong. Please try again.');
+      }
+    });
+    
+    function showError(message) {
+      const errorElement = document.getElementById('errorMessage');
+      errorElement.textContent = message;
+      errorElement.style.display = 'block';
+    }
+    
+    // Load user skills on page load
+    loadUserSkills();
   </script>
 </body>
 </html>
