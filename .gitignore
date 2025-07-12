@@ -45,3 +45,13 @@ public/build/
 # Optional: XAMPP/WAMP temp files
 xampp/
 wamp64/tmp/
+
+#cursor related
+userinput.py
+rules.md
+.cursor
+.cursor/rules
+.cursor/rules/rules.md
+.cursor/rules/userinput.py
+rules.mdc
+.cursor/rules/rules.mdc
