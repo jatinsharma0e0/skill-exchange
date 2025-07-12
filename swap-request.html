@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Swap Request</title>
+  <style>
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #f9f9f9; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 60px auto; padding: 30px; background: #fff; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    h2 { color: #4e260e; text-align: center; font-size: 2rem; font-weight: 700; margin-bottom: 30px; }
+    label { display: block; margin-top: 20px; margin-bottom: 5px; font-weight: 600; font-size: 1.1rem; }
+    select, textarea { width: 100%; padding: 10px; font-size: 1rem; border-radius: 5px; border: 1px solid #ccc; margin-bottom: 10px; }
+    textarea { min-height: 80px; resize: vertical; }
+    button { margin-top: 20px; padding: 10px 20px; background: #90caf9; color: #0d47a1; font-weight: 700; font-size: 1rem; border: none; border-radius: 8px; cursor: pointer; }
+    button:hover { background: #1976d2; color: #fff; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2 id="swapTitle">Send Swap Request</h2>
+    <form onsubmit="event.preventDefault(); alert('Request Sent!'); window.close();">
+      <label>Choose one of your offered skills</label>
+      <select id="offeredSkill" required>
+        <option value="">Select</option>
+      </select>
+      <label>Choose one of their wanted skills</label>
+      <select id="wantedSkill" required>
+        <option value="">Select</option>
+      </select>
+      <label>Message</label>
+      <textarea rows="4" placeholder="Enter a message"></textarea>
+      <button type="submit">Submit</button>
+    </form>
+  </div>
+  <script>
+    function getQueryParams() {
+      const params = {};
+      window.location.search.replace(/\??(?:([^=]+)=([^&]*)&?)/g, function(_, k, v) { params[k] = decodeURIComponent(v); });
+      return params;
+    }
+    const params = getQueryParams();
+    document.getElementById('swapTitle').textContent = `Send Swap Request to ${params.name || ''}`;
+    if(params.skillsOffered) {
+      document.getElementById('offeredSkill').innerHTML += params.skillsOffered.split(',').map(skill => `<option value="${skill}">${skill}</option>`).join('');
+    }
+    if(params.skillsWanted) {
+      document.getElementById('wantedSkill').innerHTML += params.skillsWanted.split(',').map(skill => `<option value="${skill}">${skill}</option>`).join('');
+    }
+  </script>
+</body>
+</html>

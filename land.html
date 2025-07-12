@@ -241,11 +241,79 @@
           </div>
           <button class="request-btn">Request</button>
         `;
+        card.style.cursor = "pointer";
+        card.addEventListener("click", function(e) {
+          // Prevent button click from triggering card click
+          const user = p;
+          if (e.target.classList.contains("request-btn")) {
+            // Redirect to swap-request.html with user data
+            window.location.href = `swap-request.html?name=${encodeURIComponent(user.name)}&skillsOffered=${encodeURIComponent(user.skillsOffered.join(','))}&skillsWanted=${encodeURIComponent(user.skillsWanted.join(','))}`;
+            return;
+          }
+          // Redirect to user-profile.html with user data
+          window.location.href = `user-profile.html?name=${encodeURIComponent(user.name)}&skillsOffered=${encodeURIComponent(user.skillsOffered.join(','))}&skillsWanted=${encodeURIComponent(user.skillsWanted.join(','))}&rating=${encodeURIComponent(user.rating)}`;
+        });
         container.appendChild(card);
       });
     }
 
     renderProfiles();
+    function openRequestForm(user) {
+  const newTab = window.open('', '_blank');
+  newTab.document.write(`
+    <html><head><title>Swap Request to ${user.name}</title>
+    <style>
+      body { font-family: 'Segoe UI', sans-serif; background: #f9f9f9; margin: 0; padding: 0; }
+      .container { max-width: 600px; margin: 60px auto; padding: 30px; background: #fff; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+      h2 { color: #4e260e; text-align: center; }
+      label { display: block; margin-top: 20px; margin-bottom: 5px; font-weight: 600; }
+      select, textarea { width: 100%; padding: 10px; font-size: 1rem; border-radius: 5px; border: 1px solid #ccc; }
+      button { margin-top: 20px; padding: 10px 20px; background: #90caf9; color: #0d47a1; font-weight: 700; font-size: 1rem; border: none; border-radius: 8px; cursor: pointer; }
+      button:hover { background: #1976d2; color: #fff; }
+    </style>
+    </head><body>
+      <div class="container">
+        <h2>Send Swap Request to ${user.name}</h2>
+        <form onsubmit="event.preventDefault(); alert('Request Sent!'); window.close();">
+          <label>Choose one of your offered skills</label>
+          <select required>
+            <option value="">Select</option>
+            <option>JavaScript</option>
+            <option>React</option>
+            <option>Python</option>
+          </select>
+
+          <label>Choose one of their wanted skills</label>
+          <select required>
+            ${user.skillsWanted.map(skill => `<option>${skill}</option>`).join('')}
+          </select>
+
+          <label>Message</label>
+          <textarea rows="4" placeholder="Enter a message for ${user.name}"></textarea>
+
+          <button type="submit">Submit</button>
+        </form>
+      </div>
+    </body></html>
+  `);
+  newTab.document.close();
+}
+
+// Example: Attach to buttons after rendering profile cards
+document.addEventListener("DOMContentLoaded", function () {
+  const buttons = document.querySelectorAll(".request-btn");
+  buttons.forEach((btn, index) => {
+    btn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      const profileCard = btn.closest(".profile-card");
+      const name = profileCard.querySelector("h3").textContent;
+      const skillsOffered = Array.from(profileCard.querySelectorAll(".skill-tags span")).slice(0, 2).map(s => s.textContent);
+      const skillsWanted = Array.from(profileCard.querySelectorAll(".skill-tags span")).slice(2).map(s => s.textContent);
+      const user = { name, skillsWanted, skillsOffered };
+      openRequestForm(user);
+    });
+  });
+});
   </script>
 </body>
 </html>
